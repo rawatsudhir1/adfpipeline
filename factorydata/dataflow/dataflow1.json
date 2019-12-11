@@ -3,10 +3,66 @@
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {
-			"sources": [],
-			"sinks": [],
-			"transformations": [],
-			"script": "\n"
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "AthleteDS",
+						"type": "DatasetReference"
+					},
+					"name": "AthDS"
+				},
+				{
+					"dataset": {
+						"referenceName": "RefData",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "BadData",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "insight1",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				},
+				{
+					"dataset": {
+						"referenceName": "insight2",
+						"type": "DatasetReference"
+					},
+					"name": "sink3"
+				}
+			],
+			"transformations": [
+				{
+					"name": "ConditionalSplit1"
+				},
+				{
+					"name": "Sort1"
+				},
+				{
+					"name": "Sort2"
+				},
+				{
+					"name": "Join1"
+				},
+				{
+					"name": "Aggregate1"
+				},
+				{
+					"name": "Aggregate2"
+				}
+			],
+			"script": "\n\nsource(output(\n\t\tID as string,\n\t\tName as string,\n\t\tSex as string,\n\t\tAge as string,\n\t\tHeight as string,\n\t\tWeight as string,\n\t\tTeam as string,\n\t\tNOC as string,\n\t\tGames as string,\n\t\tYear as string,\n\t\tSeason as string,\n\t\tCity as string,\n\t\tSport as string,\n\t\tEvent as string,\n\t\tMedal as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> AthDS\nsource(output(\n\t\tNOC as string,\n\t\tregion as string,\n\t\tnotes as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> source1\nAthDS split(toInteger(Age)>0 && toInteger(Weight)>0 && toInteger(Height)>0\r\n,\n\tdisjoint: false) ~> ConditionalSplit1@(GoodData, BadData)\nConditionalSplit1@GoodData sort(asc(NOC, true)) ~> Sort1\nsource1 sort(asc(NOC, true)) ~> Sort2\nSort1, Sort2 join(ConditionalSplit1@GoodData@NOC == source1@NOC,\n\tjoinType:'left',\n\tbroadcast: 'none')~> Join1\nJoin1 aggregate(groupBy(Year,\n\t\tregion,\n\t\tMedal),\n\tID = count(ID)) ~> Aggregate1\nJoin1 aggregate(groupBy(region,\n\t\tSport,\n\t\tMedal),\n\tID = count(ID)) ~> Aggregate2\nConditionalSplit1@BadData sink(allowSchemaDrift: true,\n\tvalidateSchema: false) ~> sink1\nAggregate1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false) ~> sink2\nAggregate2 sink(allowSchemaDrift: true,\n\tvalidateSchema: false) ~> sink3"
 		}
 	}
 }
